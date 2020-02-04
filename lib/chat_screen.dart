@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:chats/chat_message.dart';
 import 'package:chats/text_composer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,6 +17,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final GoogleSignIn googleSignIn = GoogleSignIn();
 
   FirebaseUser _currentUser;
+  bool _isloading = false;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -25,7 +27,9 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
 
     FirebaseAuth.instance.onAuthStateChanged.listen((user) {
-      _currentUser = user;
+      setState(() {
+        _currentUser = user;
+      });
     });
   }
 
@@ -67,20 +71,29 @@ class _ChatScreenState extends State<ChatScreen> {
     Map<String, dynamic> data = {
       "uid": user.uid,
       "senderName": user.displayName,
-      "senderPhotoUrl": user.photoUrl
+      "senderPhotoUrl": user.photoUrl,
+      "time": Timestamp.now(),
     };
 
     if (imgFile != null) {
+      setState(() {
+        _isloading = true;
+      });
+
       StorageUploadTask task = FirebaseStorage.instance
           .ref()
-          .child("pasta")
-          .child(DateTime.now().millisecondsSinceEpoch.toString())
+          .child(_currentUser.uid.toString())
+          .child(_currentUser.uid.toString() +
+              DateTime.now().millisecondsSinceEpoch.toString())
           .putFile(imgFile);
 
       StorageTaskSnapshot taskSnapshot = await task.onComplete;
       String url = await taskSnapshot.ref.getDownloadURL();
       print(url);
       data["imgUrl"] = url;
+      setState(() {
+        _isloading = false;
+      });
     }
 
     if (text != null) data["text"] = text;
@@ -93,14 +106,34 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: Text("Chat"),
+        title: _currentUser != null
+            ? Text('Ola, ${_currentUser.displayName}')
+            : Text("Chat"),
         centerTitle: true,
+        actions: <Widget>[
+          (_currentUser != null
+              ? IconButton(
+                  icon: Icon(Icons.exit_to_app),
+                  onPressed: () {
+                    FirebaseAuth.instance.signOut();
+                    googleSignIn.signOut();
+                    _scaffoldKey.currentState.showSnackBar(SnackBar(
+                      content: Text("Voce saiu com sucesso."),
+                      backgroundColor: Colors.red,
+                    ));
+                  },
+                )
+              : Container())
+        ],
       ),
       body: Column(
         children: <Widget>[
           Expanded(
             child: StreamBuilder(
-              stream: Firestore.instance.collection("menssages").snapshots(),
+              stream: Firestore.instance
+                  .collection("menssages")
+                  .orderBy('time', descending: true)
+                  .snapshots(),
               builder: (context, snapsnot) {
                 switch (snapsnot.connectionState) {
                   case ConnectionState.none:
@@ -116,16 +149,15 @@ class _ChatScreenState extends State<ChatScreen> {
                       itemCount: documents.length,
                       reverse: true,
                       itemBuilder: (context, index) {
-                        return ListTile(
-                            title: Text(
-                          documents[index].data["text"],
-                        ));
+                        return ChatMessage(documents[index].data,
+                            documents[index].data["uid"] == _currentUser?.uid);
                       },
                     );
                 }
               },
             ),
           ),
+          _isloading ? LinearProgressIndicator : Container(),
           TextComposer(_sendMessage),
         ],
       ),

@@ -41,5 +41,28 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>describe why your app needs permission for the photo library. This is called Privacy - Photo Library Usage Description in the visual editor.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>describe why your app needs access to the camera. This is called Privacy - Camera Usage Description in the visual editor.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>describe why your app needs access to the microphone, if you intend to record videos. This is called Privacy - Microphone Usage Description in the visual editor.</string>
+
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <!-- TODO Replace this value: -->
+                <!-- Copied from GoogleService-Info.plist key REVERSED_CLIENT_ID -->
+                <string>com.googleusercontent.apps.833357553444-mqn54hl180kfl53f2rts4nu2d3hj70nc</string>
+            </array>
+        </dict>
+    </array>
+
+
+
 </dict>
 </plist>
